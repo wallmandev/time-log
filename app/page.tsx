@@ -35,11 +35,21 @@ function calculateDailyStats(logs: TimeLog[]) {
   };
 }
 
+// ...existing code...
 export default async function Dashboard() {
-  const { data: logs } = await supabase.from('time_logs').select('*').order('timestamp', { ascending: false });
+  const { data: logs, error } = await supabase.from('time_logs').select('*').order('timestamp', { ascending: false });
 
-  // Gruppera loggarna per datum
-  const logsByDate = (logs || []).reduce((acc: Record<string, TimeLog[]>, log) => {
+  if (error) {
+    console.error('Error fetching logs:', error);
+    return (
+      <main className="max-w-2xl mx-auto p-6 mt-10">
+        <h1 className="text-3xl font-bold mb-8">Mina Arbetstimmar</h1>
+        <p className="text-red-500">Kunde inte hämta loggar. Försök igen senare.</p>
+      </main>
+    );
+  }
+
+  const logsByDate = (logs || []).reduce<Record<string, TimeLog[]>>((acc, log) => {
     const dateStr = new Date(log.timestamp).toLocaleDateString('sv-SE');
     if (!acc[dateStr]) acc[dateStr] = [];
     acc[dateStr].push(log);
@@ -49,20 +59,17 @@ export default async function Dashboard() {
   return (
     <main className="max-w-2xl mx-auto p-6 mt-10">
       <h1 className="text-3xl font-bold mb-8">Mina Arbetstimmar</h1>
-      
       <div className="space-y-6">
         {Object.entries(logsByDate).map(([date, dayLogs]) => {
           const stats = calculateDailyStats(dayLogs);
-          
           return (
-            <div key={date} className="bg-gray-50 border p-5 rounded-xl shadow-sm">
+            <div key={date} className="bg-green-400 border p-5 rounded-xl shadow-sm">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">{date}</h2>
                 <span className="font-mono bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium">
                   {stats.time}
                 </span>
               </div>
-              
               <div className="text-sm text-gray-600 flex space-x-6">
                 <div>
                   <span className="block font-medium text-gray-400 text-xs uppercase tracking-wider">Start</span>
